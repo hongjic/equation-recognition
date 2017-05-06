@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 from skimage import io, measure
 from imageutil import imageprocess
 
@@ -30,7 +30,7 @@ def segment_components(image, cbs, cc):
     for i in range(number):
         label = i + 1
         x1, y1, x2, y2 = cbs[i][0], cbs[i][1], cbs[i][2], cbs[i][3]
-        component = numpy.zeros((x2 - x1 + 1, y2 - y1 + 1), dtype=int)
+        component = np.zeros((x2 - x1 + 1, y2 - y1 + 1), dtype=int)
         for row in range(x1, x2 + 1):
             for col in range(y1, y2 + 1):
                 if cc[row][col] == label:
