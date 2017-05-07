@@ -10,11 +10,12 @@ import random
 class SymbolData:
     img_labels = shelve.open("img-labels")
 
-    def __init__(self, dir):
+    def __init__(self, dir, custom=False):
         image_paths = glob(dir + "/*.png")
         self.data_size = len(image_paths)
         # read images of symbols and their labels
-        self.labels = np.zeros((self.data_size, 40))
+        if not custom:
+            self.labels = np.zeros((self.data_size, 40))
         self.images = np.zeros((self.data_size, 64, 64))
         self.names = []
         for i in range(self.data_size):
@@ -24,7 +25,8 @@ class SymbolData:
             image = self.__normalize(float_img)
             self.images[i] = image
             self.names.append(fname)
-            self.labels[i][self.img_labels[fname]] = 1
+            if not custom:
+                self.labels[i][self.img_labels[fname]] = 1
 
     def __normalize(self, image):
         rows, cols = image.shape
@@ -39,7 +41,7 @@ class SymbolData:
             padding = np.lib.pad(image, ((top, bottom), (0, 0)), "constant", constant_values=(0, 0))
         return transform.resize(padding, (64, 64))
 
-    def get_batch(self, batch_size):
+    def get_training_batch(self, batch_size):
         sample = random.sample(range(self.data_size), batch_size)
         batch_images = np.zeros((batch_size, 64, 64))
         batch_labels = np.zeros((batch_size, 40))
@@ -48,11 +50,14 @@ class SymbolData:
             batch_labels[i] = self.labels[sample[i]]
         return batch_images, batch_labels
 
-    def get_all_images(self):
+    def get_all_images(self, custom=False):
+        if custom:
+            return self.images, self.names
         labels = []
         for name in self.names:
             labels.append(self.img_labels[name])
         return self.images, self.names, labels
+
 
 
 def weight_variable(shape):
@@ -97,10 +102,9 @@ h_pool3 = max_pool_2x2(h_conv3)
 w_conv4 = weight_variable([5, 5, 32, 64])
 b_conv4 = bias_variable([64])
 h_conv4 = tf.nn.relu(conv2d(h_pool3, w_conv4) + b_conv4)
-
 h_conv4_flat = tf.reshape(h_conv4, [-1, 8 * 8 * 64])
 
-# densely connected layer, 1024 nuerals 
+# densely connected layer, 1024 neurals
 w_fc1 = weight_variable([8 * 8 * 64, 1024])
 b_fc1 = bias_variable([1024])
 h_fc1 = tf.nn.relu(tf.matmul(h_conv4_flat, w_fc1) + b_fc1)
@@ -129,7 +133,7 @@ def train(_):
     correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     for i in range(3000):
-        batch_images, batch_labels = symbol_data.get_batch(30)
+        batch_images, batch_labels = symbol_data.get_training_batch(30)
         if i % 100 == 0:
             train_accuracy = accuracy.eval(feed_dict={x: batch_images, y_: batch_labels, keep_prob: 1.0})
             print("step %d, training accuracy %g"%(i, train_accuracy))
@@ -138,13 +142,13 @@ def train(_):
     print("Model saved at: " + model_path)
 
 
-def test(_):
+def test_standard(_):
     # test
     test_path = _[1]
     symbol_data = SymbolData(test_path)
     sess = tf.InteractiveSession()
     saver = tf.train.Saver()
-    saver.restore(sess, "model2/model.ckpt")
+    saver.restore(sess, "model/model.ckpt")
     print("Model restored.")
     test_images, image_names, labels = symbol_data.get_all_images()
     size = len(test_images)
@@ -166,6 +170,23 @@ def test(_):
     output.close()
 
 
+def test(_):
+    # test
+    test_path = _[1]
+    symbol_data = SymbolData(test_path, custom=True)
+    sess = tf.InteractiveSession()
+    saver = tf.train.Saver()
+    saver.restore(sess, "model/model.ckpt")
+    print("Model restored.")
+    test_images, image_names = symbol_data.get_all_images(custom=True)
+    size = len(test_images)
+    categories = tf.argmax(y_conv, 1).eval(feed_dict={x: test_images, keep_prob: 1.0})
+    output = open("output.txt", "w")
+    for i in range(0, len(categories)):
+        output.write(image_names[i] + "\t" + str(categories[i]) + "\n")
+    output.close()
+
+
 if __name__ == "__main__":
     if len(sys.argv) <= 2:
         print("options: \n\t-train <image path>\n\t-test <image path>")
@@ -175,4 +196,7 @@ if __name__ == "__main__":
         if option == "-train":
             tf.app.run(main=train, argv=[sys.argv[0], path])
         else:
-            tf.app.run(main=test, argv=[sys.argv[0], path])
+            if path == "standard":
+                tf.app.run(main=test_standard, argv=[sys.argv[0], "images/symbols/test"])
+            else:
+                tf.app.run(main=test, argv=[sys.argv[0], path])

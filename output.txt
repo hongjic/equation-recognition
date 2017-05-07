@@ -1,0 +1,16 @@
+tmp1.png	3
+tmp10.png	23
+tmp11.png	4
+tmp12.png	24
+tmp13.png	22
+tmp14.png	4
+tmp15.png	5
+tmp16.png	5
+tmp2.png	2
+tmp3.png	2
+tmp4.png	3
+tmp5.png	24
+tmp6.png	23
+tmp7.png	4
+tmp8.png	22
+tmp9.png	4
