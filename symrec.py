@@ -7,11 +7,12 @@ import imageutil as util
 import shelve
 import random
 
-img_labels = shelve.open("img-labels")
 
 class SymbolData:
 
+
     def __init__(self, dir, custom=False):
+        self.img_labels = shelve.open("img-labels")
         image_paths = glob(dir + "/*.png")
         self.data_size = len(image_paths)
         # read images of symbols and their labels
@@ -27,7 +28,7 @@ class SymbolData:
             self.images[i] = image
             self.names.append(fname)
             if not custom:
-                self.labels[i][img_labels[fname]] = 1
+                self.labels[i][self.img_labels[fname]] = 1
 
 
     def get_training_batch(self, batch_size):
@@ -44,7 +45,7 @@ class SymbolData:
             return self.images, self.names
         labels = []
         for name in self.names:
-            labels.append(img_labels[name])
+            labels.append(self.img_labels[name])
         return self.images, self.names, labels
 
 
