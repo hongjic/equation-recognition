@@ -53,7 +53,7 @@ def get_connected_components(origin_image):
 
 
 if __name__ == "__main__":
-    origin_image = io.imread("images/equations/SKMBT_36317040717260_eq8.png", as_grey=True)
+    origin_image = io.imread("images/equations/SKMBT_36317040717260_eq17.png", as_grey=True)
     image, cbs, label = label_components(origin_image)
     # cut out the components
     components = segment_components_by_label(origin_image, cbs, label)

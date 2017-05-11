@@ -61,14 +61,43 @@ def predict(fcn, image_path):
 		components[i] = util.normalize(img_as_float(components[i]))
 	categories = fcn.test_custom(components)
 	# build ImgPred
-	sym_labels = shelve.open("sym-labels")
-	label_arr = [None] * 41
-	for key in sym_labels:
-		label_arr[sym_labels[key]] = key
+	label_arr = ['A', 'tan', ')', '(', '+', '-', 'sqrt', '1', '0', '3', '2', '4', '6', 'mul', 'pi', '=', 'sin', 'pm', 'dots', 'frac', 'cos', 'delta', 'a', 'c', 'b', 'bar', 'd', 'f', 'i', 'h', 'k', 'm', 'o', 'n', 'p', 's', 't', 'y', 'x', 'div', 'bg']
 	sym_pred_list = []
+
 	for i in range(size):
 		sympred = SymPred(label_arr[categories[i]], cbs[i][0], cbs[i][1], cbs[i][2], cbs[i][3])
-		sym_pred_list.append(sympred)
+
+		# check '='
+		if label_arr[categories[i]] == '-':
+			flag = False
+			index_todelete = 0
+			new_sympred = None
+			for j in range(0,len(sym_pred_list)):
+				item = sym_pred_list[j]
+				if item.prediction == '-' and abs((item.x1 - cbs[i][0]) - (item.x2 - cbs[i][2])) < 5 and abs(item.y1 - cbs[i][1]) < 5 and abs(item.y2 - cbs[i][3]) < 5:
+					#condition match
+					index_todelete = j
+					new_x1 = min(item.x1, cbs[i][0])
+					new_y1 = min(item.y1, cbs[i][1])
+					new_x2 = max(item.x2, cbs[i][2])
+					new_y2 = max(item.y2, cbs[i][3])
+
+					new_sympred = SymPred('=',new_x1, new_y1, new_x2, new_y2)
+					flag = True
+					break
+
+			if flag == True:
+				del sym_pred_list[index_todelete]
+				sym_pred_list.append(new_sympred)
+			else:
+				sym_pred_list.append(sympred)
+
+		else:
+			# this is not '-'
+			sym_pred_list.append(sympred)
+
+
+
 	img_prediction = ImgPred(image_path, sym_pred_list)
 	return img_prediction
 
